@@ -41,15 +41,24 @@ defmodule Translator do
       else
         quote do
           def t(unquote(locales), unquote(path), bindings) do
-            unquote(integraters(val))
+            unquote(interpolate(val))
           end
         end
       end
     end
   end
 
-  defp integraters(string) do
-    string # TBD
+  defp interpolate(string) do
+    ~r/(?<head>)%{[^}]+}(?<tail>)/
+    |> Regex.split(string, on: [:head, :tail])
+    |> Enum.reduce "", fn
+      <<"%{" <> rest>>, acc ->
+        key = String.to_atom(String.rstrip(rest, ?}))
+        quote do
+          unquote(acc) <> to_string(Dict.fetch!(bindings, unquote(key)))
+        end
+      segment, acc -> quote do: (unquote(acc) <> unquote(segment))
+    end
   end
 
   defp append_path("", next), do: to_string(next)
@@ -77,9 +86,7 @@ defmodule I18n do
     users: [
       title: "ユーザ",
     ]
-
 end
-
 
 defmodule Sample do
   import I18n
