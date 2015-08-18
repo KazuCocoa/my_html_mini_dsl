@@ -19,22 +19,19 @@ defmodule Translator do
   end
 
   def compile(translations) do
-    translations_ast = for {locale, mappings} <- translations do
-      deftranslations(locale, "", mappings)
+    translations_ast = for {locale, source} <- translations do
+      deftranslations(locale, "", source)
     end
 
-    final_ast = quote do
+    quote do
       def t(locale, path, bindings \\ [])
       unquote(translations_ast)
       def t(_locale, _path, _bindings), do: {:error, :no_translation}
     end
-
-    IO.puts Macro.to_string(final_ast)
-    final_ast
   end
 
-  defp deftranslations(locales, current_path, mappings) do
-    for {key, val} <- mappings do
+  defp deftranslations(locales, current_path, translations) do
+    for {key, val} <- translations do
       path = append_path(current_path, key)
       if Keyword.keyword?(val) do
         deftranslations(locales, path, val)
@@ -49,8 +46,11 @@ defmodule Translator do
   end
 
   defp interpolate(string) do
+    IO.inspect string
+
     ~r/(?<head>)%{[^}]+}(?<tail>)/
     |> Regex.split(string, on: [:head, :tail])
+    |> IO.inspect
     |> Enum.reduce "", fn
       <<"%{" <> rest>>, acc ->
         key = String.to_atom(String.rstrip(rest, ?}))
