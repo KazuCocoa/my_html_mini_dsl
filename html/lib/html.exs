@@ -16,7 +16,7 @@ defmodule Html do
   end
 
   def postwalk({:text, _meta, [string]}) do
-    quote do: put_buffer(val!(buffer, Html), to_string(unquote(string)))
+    quote do: put_buffer(var!(buffer, Html), to_string(unquote(string)))
   end
   def postwalk({tag_name, _meta, [[do: inner]]}) when tag_name in @tags do
     quote do: tag(unquote(tag_name), [], do: unquote(inner))
@@ -35,10 +35,8 @@ defmodule Html do
   def render(buff), do: Agent.get(buff, &(&1)) |> Enum.reverse |> Enum.join("")
 
   defmacro tag(name, attrs \\ [], do: inner) do
-    IO.inspect Macto.to_string inner
     quote do
       put_buffer var!(buffer, Html), open_tag(unquote_splicing([name, attrs]))
-      # IO.inspect Macro.to_string(inner)
       unquote(postwalk(inner))
       put_buffer var!(buffer, Html), unquote("</#{name}>")
     end
